@@ -740,6 +740,12 @@ body.game-loading {
             text-overflow: ellipsis;
         }
 
+        @media (min-width: 600px) and (min-height: 600px) {
+            .booster-toast {
+                top: clamp(96px, 12vh, 108px);
+            }
+        }
+
         .result-popup {
             position: fixed;
             inset: 0;
