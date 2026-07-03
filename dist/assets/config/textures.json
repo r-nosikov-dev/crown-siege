@@ -1,0 +1,21 @@
+{
+    "textures": {
+        "orc": "assets/images/enemies/orc_list.webp",
+        "orc_death": "assets/images/enemies/orc_death.webp",
+        "background": "assets/images/environment/background.webp",
+        "boost_collectible": "assets/images/collectibles/boost.webp",
+        "castle": "assets/images/environment/castle.webp",
+        "weapon_pistol": "assets/images/weapons/pistol.webp",
+        "weapon_shotgun": "assets/images/weapons/shotgun.webp",
+        "weapon_ak": "assets/images/weapons/ak.webp",
+        "weapon_minigun": "assets/images/weapons/minigun.webp",
+        "weapon_rpg": "assets/images/weapons/rpg.webp",
+        "blood_atlas": "assets/images/effects/blood/blood_atlas.webp"
+    },
+    "spriteSheets": {
+        "blood_atlas": "assets/images/effects/blood/blood_atlas.json"
+    },
+    "ui": {
+        "aim": "assets/images/ui/aim.webp"
+    }
+}

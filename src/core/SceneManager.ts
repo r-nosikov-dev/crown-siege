@@ -1,5 +1,6 @@
 import * as PIXI from 'pixi.js';
 import { Scene } from '../scenes/Scene';
+import { getViewportSize } from './Viewport';
 
 export class SceneManager {
     private root: PIXI.Container;
@@ -10,8 +11,6 @@ export class SceneManager {
         this.root = root;
         this.scenes = new Map();
         this.currentScene = null;
-
-        // Add update loop
         PIXI.Ticker.shared.add(this.update, this);
     }
 
@@ -29,8 +28,9 @@ export class SceneManager {
         if (nextScene) {
             this.currentScene = nextScene;
             this.root.addChild(this.currentScene);
+            const { width, height } = getViewportSize();
+            this.currentScene.resize(width, height);
             this.currentScene.onActivate();
-            this.currentScene.resize(window.innerWidth, window.innerHeight);
         } else {
             console.error(`Scene '${name}' not found!`);
         }

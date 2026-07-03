@@ -1,157 +1,371 @@
 import * as PIXI from 'pixi.js';
+import { formatTime } from '../game/SurvivalConfig';
+import { ActiveWeapon } from '../game/GameController';
+import { isPhoneViewport } from '../core/Viewport';
+import { hudButtonStyle, hudLabelStyle, hudValueStyle } from '../styles/GameTypography';
+
+const BTN_LABELS = {
+    pause: 'PAUSE',
+    sound: 'SOUND',
+    settings: 'SETTINGS',
+} as const;
+
+interface HudLayout {
+    hudHeight: number;
+    padding: number;
+    labelSize: number;
+    valueSize: number;
+    btnWidth: number;
+    btnHeight: number;
+    btnFontSize: number;
+    btnGap: number;
+    showLabels: boolean;
+    pauseLabel: string;
+    soundLabel: string;
+    settingsLabel: string;
+}
+
+interface HudButton {
+    container: PIXI.Container;
+    border: PIXI.Graphics;
+    inner: PIXI.Graphics;
+    label: PIXI.Text;
+    color: number;
+}
+
+const MAX_BTN_WIDTH = 80;
+const MIN_BTN_WIDTH = 34;
+const LABEL_VALUE_GAP = 6;
+
+function computeLayout(screenWidth: number): HudLayout {
+    const isPhone = isPhoneViewport();
+    const padding = screenWidth < 380 ? 6 : screenWidth < 640 ? 10 : 14;
+    const btnGap = screenWidth < 380 ? 4 : 6;
+
+    let btnWidth = screenWidth >= 900 ? 78 : screenWidth >= 640 ? 64 : screenWidth >= 480 ? 54 : 44;
+    let btnHeight = screenWidth < 380 ? 24 : screenWidth < 640 ? 28 : 32;
+    let btnFontSize = isPhone
+        ? (screenWidth < 360 ? 5 : screenWidth < 400 ? 5.5 : 6)
+        : (screenWidth < 640 ? 8 : 9);
+
+    const statsReserve = isPhone
+        ? (screenWidth < 380 ? 128 : 148)
+        : (screenWidth < 640 ? 280 : 380);
+    const maxFitWidth = Math.floor((screenWidth - padding * 2 - statsReserve - btnGap * 2) / 3);
+    btnWidth = Math.max(MIN_BTN_WIDTH, Math.min(MAX_BTN_WIDTH, btnWidth, maxFitWidth));
+
+    const showLabels = screenWidth >= 560;
+    const hudHeight = showLabels
+        ? screenWidth >= 900 ? 88 : 76
+        : screenWidth < 380 ? 50 : 58;
+
+    return {
+        hudHeight,
+        padding,
+        labelSize: showLabels ? (screenWidth >= 900 ? 8 : 7) : 0,
+        valueSize: screenWidth < 380 ? 9 : screenWidth < 640 ? 10 : screenWidth >= 900 ? 14 : 12,
+        btnWidth,
+        btnHeight,
+        btnFontSize,
+        btnGap,
+        showLabels,
+        pauseLabel: BTN_LABELS.pause,
+        soundLabel: BTN_LABELS.sound,
+        settingsLabel: BTN_LABELS.settings,
+    };
+}
 
 export class HUD extends PIXI.Container {
     private topBar: PIXI.Graphics;
     private timeLabel: PIXI.Text;
     private timeValue: PIXI.Text;
+    private killsLabel: PIXI.Text;
+    private killsValue: PIXI.Text;
     private scoreLabel: PIXI.Text;
     private scoreValue: PIXI.Text;
-    private pauseBtn: PIXI.Container;
-    private soundBtn: PIXI.Container;
+    private weaponLabel: PIXI.Text;
+    private weaponValue: PIXI.Text;
+    private pauseBtn: HudButton;
+    private soundBtn: HudButton;
+    private settingsBtn: HudButton;
+    private screenWidth = window.innerWidth;
 
-    public readonly hudHeight: number = 80;
+    private layout: HudLayout = computeLayout(window.innerWidth);
+
+    public get hudHeight(): number {
+        return this.layout.hudHeight;
+    }
 
     constructor() {
         super();
         this.createUI();
+        this.setupInputShield();
+    }
+
+    private setupInputShield(): void {
+        const block = (e: PIXI.FederatedPointerEvent): void => {
+            e.stopPropagation();
+        };
+        this.on('pointerdown', block);
+        this.on('pointertap', block);
+        this.topBar.on('pointerdown', block);
+        this.topBar.on('pointertap', block);
     }
 
     private createUI(): void {
-        // Top Bar Background
         this.topBar = new PIXI.Graphics();
         this.addChild(this.topBar);
 
-        const fontStyleLabel = { fontFamily: 'Press Start 2P', fontSize: 16, fill: 0xffffff };
-        const fontStyleValue = { fontFamily: 'Press Start 2P', fontSize: 16, fill: 0xffffff };
+        this.timeLabel = new PIXI.Text({ text: 'TIME', style: this.labelStyle() });
+        this.timeValue = new PIXI.Text({ text: '00:00', style: this.valueStyle() });
+        this.killsLabel = new PIXI.Text({ text: 'KILLS', style: this.labelStyle() });
+        this.killsValue = new PIXI.Text({ text: '0', style: this.valueStyle() });
+        this.scoreLabel = new PIXI.Text({ text: 'SCORE', style: this.labelStyle() });
+        this.scoreValue = new PIXI.Text({ text: '0', style: this.valueStyle() });
+        this.weaponLabel = new PIXI.Text({ text: 'GUN', style: this.labelStyle() });
+        this.weaponValue = new PIXI.Text({ text: '', style: this.valueStyle() });
+        this.weaponLabel.visible = false;
+        this.weaponValue.visible = false;
 
-        // Time
-        this.timeLabel = new PIXI.Text('TIME', fontStyleLabel);
-        this.addChild(this.timeLabel);
-        this.timeValue = new PIXI.Text('00', fontStyleValue);
-        this.addChild(this.timeValue);
+        this.addChild(
+            this.timeLabel, this.timeValue,
+            this.killsLabel, this.killsValue,
+            this.scoreLabel, this.scoreValue,
+            this.weaponLabel, this.weaponValue,
+        );
 
-        // Score
-        this.scoreLabel = new PIXI.Text('ENEMIES', fontStyleLabel);
-        this.addChild(this.scoreLabel);
-        this.scoreValue = new PIXI.Text('00/00', fontStyleValue);
-        this.addChild(this.scoreValue);
-
-        // Buttons
-        // Pause -> Ocean (Blue)
-        this.pauseBtn = this.createButton('PAUSE', 0x0099CC);
-        this.addChild(this.pauseBtn);
-
-        // Sound -> Galaxy (Grey/Blueish) or just Grey
+        this.pauseBtn = this.createButton('PAUSE', 0x0099cc);
         this.soundBtn = this.createButton('SOUND', 0x777777);
-        this.addChild(this.soundBtn);
+        this.settingsBtn = this.createButton('SET', 0x5c5c8a);
+        this.addChild(this.pauseBtn.container, this.soundBtn.container, this.settingsBtn.container);
     }
 
-    private createButton(text: string, color: number): PIXI.Container {
-        const btn = new PIXI.Container();
-        const width = 100;
-        const height = 30;
-        const radius = 4; // Small rounded corners
+    private labelStyle(): Partial<PIXI.TextStyle> {
+        return hudLabelStyle(this.layout.labelSize);
+    }
 
-        // Shadow/Border (Black)
+    private valueStyle(): Partial<PIXI.TextStyle> {
+        return hudValueStyle(this.layout.valueSize);
+    }
+
+    private createButton(text: string, color: number): HudButton {
+        const container = new PIXI.Container();
         const border = new PIXI.Graphics();
-        border.beginFill(0x000000);
-        border.drawRoundedRect(0, 0, width, height, radius);
-        border.endFill();
-        btn.addChild(border);
-
-        // Inner Color (slightly smaller to create border effect)
         const inner = new PIXI.Graphics();
-        inner.beginFill(color);
-        // Draw slightly smaller to leave black border
-        inner.drawRoundedRect(2, 2, width - 4, height - 4, radius);
-        inner.endFill();
-
-        // Highlight (Top/Left) - simplified "shine"
-        inner.beginFill(0xFFFFFF, 0.3);
-        inner.drawRoundedRect(2, 2, width - 4, height / 2 - 2, radius);
-        inner.endFill();
-
-        btn.addChild(inner);
-
-        // Text (Black for contrast on these bright colors)
-        const label = new PIXI.Text(text, {
-            fontFamily: 'Press Start 2P',
-            fontSize: 12,
-            fill: 0x000000
+        const label = new PIXI.Text({
+            text,
+            style: hudButtonStyle(this.layout.btnFontSize),
         });
+
+        container.addChild(border, inner, label);
         label.anchor.set(0.5);
-        label.position.set(width / 2, height / 2);
-        btn.addChild(label);
+        border.eventMode = 'none';
+        inner.eventMode = 'none';
+        label.eventMode = 'none';
+        container.interactiveChildren = false;
+        container.eventMode = 'static';
+        container.cursor = 'pointer';
+        container.on('pointerover', () => { inner.tint = 0xdddddd; });
+        container.on('pointerout', () => { inner.tint = 0xffffff; });
 
-        btn.interactive = true;
-        btn.cursor = 'pointer';
-
-        // Hover effect
-        btn.on('pointerover', () => {
-            inner.tint = 0xDDDDDD; // Lighten/Darken
-        });
-        btn.on('pointerout', () => {
-            inner.tint = 0xFFFFFF; // Reset
-        });
-
-        return btn;
+        return { container, border, inner, label, color };
     }
 
-    public resize(width: number, height: number): void {
-        // Draw Top Bar
-        this.topBar.clear();
-        this.topBar.beginFill(0x000000);
-        this.topBar.drawRect(0, 0, width, this.hudHeight);
-        this.topBar.endFill();
+    private bindButtonClick(btn: HudButton, cb: () => void): void {
+        const handler = (e: PIXI.FederatedPointerEvent): void => {
+            e.stopPropagation();
+            cb();
+        };
+        btn.container.on('pointertap', handler);
+    }
 
-        // Layout
-        const padding = 20;
+    private fitButtonFont(label: PIXI.Text, text: string, btnWidth: number, btnHeight: number, startSize: number): void {
+        const minSize = isPhoneViewport() ? 4 : 6;
+        let fontSize = startSize;
+        label.text = text;
 
-        // Time Group
-        this.timeLabel.position.set(padding, 20);
-        this.timeValue.position.set(padding, 45);
+        while (fontSize > minSize) {
+            label.style.fontSize = fontSize;
+            if (label.width <= btnWidth - 6 && label.height <= btnHeight - 6) break;
+            fontSize -= 0.5;
+        }
 
-        // Score Group (Center-ish)
-        const scoreX = (width - 200) / 2;
-        this.scoreLabel.position.set(scoreX, 20);
-        this.scoreValue.position.set(scoreX, 45);
+        label.style.fontSize = Math.max(minSize, fontSize);
+    }
 
-        // Buttons (Right aligned)
-        let btnX = width - padding - 100;
+    private redrawButton(btn: HudButton, text: string, fontScale = 1): void {
+        const { btnWidth, btnHeight, btnFontSize } = this.layout;
+        const { border, inner, label, color } = btn;
 
-        if (width < 600) {
-            // Mobile: Stack buttons vertically below the bar or squeeze them?
-            // Let's squeeze them into the bar for now, maybe smaller
-            this.soundBtn.position.set(width - 110, 10);
-            this.pauseBtn.position.set(width - 110, 45);
+        border.clear();
+        border.roundRect(0, 0, btnWidth, btnHeight, 3).fill(0x000000);
+        inner.clear();
+        inner.roundRect(2, 2, btnWidth - 4, btnHeight - 4, 3).fill(color);
+        inner.roundRect(2, 2, btnWidth - 4, btnHeight / 2 - 2, 3).fill({ color: 0xffffff, alpha: 0.25 });
+        inner.tint = 0xffffff;
+
+        this.fitButtonFont(label, text, btnWidth, btnHeight, btnFontSize * fontScale);
+        label.position.set(btnWidth / 2, btnHeight / 2);
+        btn.container.hitArea = new PIXI.Rectangle(0, 0, btnWidth, btnHeight);
+    }
+
+    private applyTextStyles(): void {
+        [this.timeLabel, this.killsLabel, this.scoreLabel, this.weaponLabel].forEach(t => Object.assign(t.style, this.labelStyle()));
+        [this.timeValue, this.killsValue, this.scoreValue, this.weaponValue].forEach(t => Object.assign(t.style, this.valueStyle()));
+    }
+
+    private placeColumn(label: PIXI.Text, value: PIXI.Text, x: number, top: number): number {
+        label.anchor.set(0, 0);
+        value.anchor.set(0, 0);
+        label.position.set(x, top);
+        value.position.set(x, top + (this.layout.showLabels ? label.height + LABEL_VALUE_GAP : 0));
+        return Math.max(label.width, value.width);
+    }
+
+    private layoutButtons(): void {
+        const { padding, btnWidth, btnHeight, btnGap, hudHeight } = this.layout;
+        const btnY = Math.round((hudHeight - btnHeight) / 2);
+        const settingsX = this.screenWidth - padding - btnWidth;
+        const soundX = settingsX - btnGap - btnWidth;
+        const pauseX = soundX - btnGap - btnWidth;
+
+        this.redrawButton(this.pauseBtn, this.layout.pauseLabel);
+        this.redrawButton(this.soundBtn, this.layout.soundLabel);
+        this.redrawButton(this.settingsBtn, this.layout.settingsLabel, 0.72);
+        this.pauseBtn.container.position.set(pauseX, btnY);
+        this.soundBtn.container.position.set(soundX, btnY);
+        this.settingsBtn.container.position.set(settingsX, btnY);
+    }
+
+    private layoutStats(): void {
+        const { padding, hudHeight, showLabels, labelSize } = this.layout;
+        const statsRight = this.pauseBtn.container.x - 8;
+        const valueH = this.timeValue.height;
+        const rowTop = Math.round((hudHeight - (showLabels ? labelSize + LABEL_VALUE_GAP + valueH : valueH)) / 2);
+
+        const statColumns = this.weaponValue.visible ? 4 : 3;
+        const colGap = Math.max(10, Math.floor((statsRight - padding) / statColumns));
+
+        const weaponVisible = this.weaponValue.visible;
+
+        if (showLabels) {
+            [this.timeLabel, this.killsLabel, this.scoreLabel].forEach(l => { l.visible = true; });
+            this.weaponLabel.visible = weaponVisible;
+            this.placeColumn(this.timeLabel, this.timeValue, padding, rowTop);
+            this.placeColumn(this.killsLabel, this.killsValue, padding + colGap, rowTop);
+            this.placeColumn(this.scoreLabel, this.scoreValue, padding + colGap * 2, rowTop);
+            if (weaponVisible) {
+                this.placeColumn(this.weaponLabel, this.weaponValue, padding + colGap * 3, rowTop);
+            }
         } else {
-            this.soundBtn.position.set(btnX, 25);
-            btnX -= 110;
-            this.pauseBtn.position.set(btnX, 25);
+            [this.timeLabel, this.killsLabel, this.scoreLabel, this.weaponLabel].forEach(l => { l.visible = false; });
+            const centerY = Math.round(hudHeight / 2);
+            this.timeValue.anchor.set(0, 0.5);
+            this.killsValue.anchor.set(0, 0.5);
+            this.scoreValue.anchor.set(0, 0.5);
+            this.weaponValue.anchor.set(0, 0.5);
+            this.timeValue.position.set(padding, centerY);
+            this.killsValue.position.set(padding + colGap, centerY);
+            this.scoreValue.position.set(padding + colGap * 2, centerY);
+            if (weaponVisible) {
+                this.weaponValue.position.set(padding + colGap * 3, centerY);
+            }
         }
     }
 
-    public updateTime(time: number): void {
-        this.timeValue.text = Math.ceil(time).toString().padStart(2, '0');
+    public resize(width: number, _height: number): void {
+        this.screenWidth = width;
+        this.layout = computeLayout(width);
+        this.applyTextStyles();
+        this.topBar.clear();
+        this.topBar.rect(0, 0, width, this.layout.hudHeight).fill(0x000000);
+        this.topBar.eventMode = 'static';
+        this.topBar.hitArea = new PIXI.Rectangle(0, 0, width, this.layout.hudHeight);
+        this.eventMode = 'static';
+        this.hitArea = new PIXI.Rectangle(0, 0, width, this.layout.hudHeight);
+        this.layoutButtons();
+        this.layoutStats();
     }
 
-    public updateScore(destroyed: number, total: number): void {
-        this.scoreValue.text = `${destroyed}/${total}`;
+    public updateTime(seconds: number): void {
+        this.timeValue.text = formatTime(seconds);
+        this.layoutStats();
+    }
+
+    public updateKills(kills: number): void {
+        this.killsValue.text = `${kills}`;
+        this.layoutStats();
+    }
+
+    public updateScore(score: number, nextHealAt: number): void {
+        this.scoreValue.text = `${score}`;
+        const remaining = nextHealAt - score;
+        this.scoreValue.style.fill = remaining > 0 && remaining <= 250 ? 0xffdd44 : 0xffffff;
+        this.layoutStats();
+    }
+
+    public updateWeapon(weapon: ActiveWeapon, ammo: number, status: 'ready' | 'pump' | 'reload' | 'overheat'): void {
+        if (weapon === 'pistol') {
+            this.weaponLabel.visible = false;
+            this.weaponValue.visible = false;
+            this.layoutStats();
+            return;
+        }
+
+        this.weaponValue.visible = true;
+        if (weapon === 'rpg') {
+            this.weaponLabel.text = 'RPG';
+            if (status === 'reload') {
+                this.weaponValue.text = 'LOAD';
+                this.weaponValue.style.fill = 0xffaa44;
+            } else {
+                this.weaponValue.text = `R:${ammo}`;
+                this.weaponValue.style.fill = 0xff5533;
+            }
+        } else if (weapon === 'assault') {
+            this.weaponLabel.text = 'AK';
+            if (status === 'overheat') {
+                this.weaponValue.text = 'HOT!';
+                this.weaponValue.style.fill = 0xff3333;
+            } else {
+                this.weaponValue.text = 'AUTO';
+                this.weaponValue.style.fill = 0x88dd66;
+            }
+        } else if (weapon === 'minigun') {
+            this.weaponLabel.text = 'MG';
+            if (status === 'overheat') {
+                this.weaponValue.text = 'HOT!';
+                this.weaponValue.style.fill = 0xff3333;
+            } else {
+                this.weaponValue.text = 'AUTO';
+                this.weaponValue.style.fill = 0xff88cc;
+            }
+        } else {
+            this.weaponLabel.text = 'GUN';
+            if (status === 'pump') {
+                this.weaponValue.text = 'PUMP';
+                this.weaponValue.style.fill = 0xffaa44;
+            } else {
+                this.weaponValue.text = `SG:${ammo}`;
+                this.weaponValue.style.fill = 0xff8866;
+            }
+        }
+        this.layoutStats();
     }
 
     public onPauseClick(cb: () => void): void {
-        this.pauseBtn.on('pointerdown', cb);
+        this.bindButtonClick(this.pauseBtn, cb);
     }
 
     public onSoundClick(cb: () => void): void {
-        this.soundBtn.on('pointerdown', cb);
+        this.bindButtonClick(this.soundBtn, cb);
+    }
+
+    public onSettingsClick(cb: () => void): void {
+        this.bindButtonClick(this.settingsBtn, cb);
     }
 
     public setSoundText(isOn: boolean): void {
-        // Access the text child directly for simplicity in this placeholder
-        // Structure is [Border, Inner, Text] -> index 2
-        const text = this.soundBtn.children[2] as PIXI.Text;
-        // Just toggle alpha or something for now as color is black
-        text.alpha = isOn ? 1 : 0.5;
+        this.soundBtn.label.alpha = isOn ? 1 : 0.5;
     }
 }

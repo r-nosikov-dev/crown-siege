@@ -1,0 +1,11 @@
+{
+    "sounds": {
+        "shot": "assets/sounds/shot.mp3",
+        "shootgun": "assets/sounds/shootgun.mp3",
+        "assault": "assets/sounds/assault.mp3",
+        "minigun": "assets/sounds/minigun.mp3",
+        "rpg": "assets/sounds/rpg.mp3",
+        "bonus": "assets/sounds/bonus.mp3",
+        "death_orc": "assets/sounds/death_orc.mp3"
+    }
+}

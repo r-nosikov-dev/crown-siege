@@ -1,12 +1,17 @@
 import * as PIXI from 'pixi.js';
 import { SceneManager } from './SceneManager';
+import { AssetsLoader } from './AssetsLoader';
+import { AudioLoader } from './AudioLoader';
+import { SoundManager } from './SoundManager';
 import { MenuScene } from '../scenes/MenuScene';
 import { GameScene } from '../scenes/GameScene';
+import { getDevicePixelRatio, getViewportSize, setupViewportListeners } from './Viewport';
 
 export class GameApp {
     private static instance: GameApp;
     public app: PIXI.Application;
     public sceneManager: SceneManager;
+    private removeViewportListeners: (() => void) | null = null;
 
     private constructor() {
         this.app = new PIXI.Application();
@@ -20,30 +25,50 @@ export class GameApp {
     }
 
     public async init(): Promise<void> {
+        const { width, height } = getViewportSize();
+
         await this.app.init({
-            width: window.innerWidth,
-            height: window.innerHeight,
+            width,
+            height,
             backgroundColor: 0x1099bb,
-            resolution: window.devicePixelRatio || 1,
+            resolution: getDevicePixelRatio(),
+            autoDensity: true,
+            resizeTo: undefined,
         });
 
-        document.body.appendChild(this.app.canvas as unknown as Node);
+        const canvas = this.app.canvas as HTMLCanvasElement;
+        canvas.style.display = 'block';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.touchAction = 'none';
+        document.body.appendChild(canvas);
+
+        await AssetsLoader.getInstance().loadGameAssets();
+        await AudioLoader.getInstance().loadAudioManifest();
+        SoundManager.getInstance().init();
 
         this.sceneManager = new SceneManager(this.app.stage);
 
-        // Handle resize
-        window.addEventListener('resize', () => {
-            this.app.renderer.resize(window.innerWidth, window.innerHeight);
-            if (this.sceneManager) {
-                this.sceneManager.resize(window.innerWidth, window.innerHeight);
-            }
-        });
+        this.removeViewportListeners = setupViewportListeners(() => this.handleResize());
+        this.handleResize();
 
-        // Initialize Scenes
         this.sceneManager.addScene('menu', new MenuScene());
         this.sceneManager.addScene('game', new GameScene());
 
-        // Start with Menu
         this.sceneManager.switchTo('menu');
+    }
+
+    private handleResize(): void {
+        const { width, height } = getViewportSize();
+        const dpr = getDevicePixelRatio();
+
+        this.app.renderer.resolution = dpr;
+        this.app.renderer.resize(width, height);
+        this.sceneManager.resize(width, height);
+    }
+
+    public destroy(): void {
+        this.removeViewportListeners?.();
+        this.removeViewportListeners = null;
     }
 }

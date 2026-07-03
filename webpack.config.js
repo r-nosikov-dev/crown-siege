@@ -2,9 +2,12 @@ const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 module.exports = {
-    mode: 'development',
+    mode: isProduction ? 'production' : 'development',
     entry: './src/index.ts',
+    devtool: isProduction ? false : 'source-map',
     output: {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist'),
@@ -12,6 +15,9 @@ module.exports = {
     },
     resolve: {
         extensions: ['.ts', '.js'],
+        alias: {
+            gsap: path.resolve(__dirname, 'node_modules/gsap/dist/gsap.js'),
+        },
     },
     module: {
         rules: [
@@ -21,21 +27,19 @@ module.exports = {
                 exclude: /node_modules/,
             },
             {
-                test: /\.(png|svg|jpg|jpeg|gif)$/i,
+                test: /\.(png|svg|jpg|jpeg|gif|webp)$/i,
                 type: 'asset/resource',
             },
         ],
     },
     plugins: [
         new HtmlWebpackPlugin({
-            title: 'PixiJS Mini-Game',
+            title: 'Crown Siege',
             template: './src/index.html',
         }),
         new CopyPlugin({
             patterns: [
-                { from: 'src/assets', to: 'assets', noErrorOnMissing: true },
-                { from: 'src/sound', to: 'sound', noErrorOnMissing: true },
-                { from: 'src/sprites', to: 'sprites', noErrorOnMissing: true },
+                { from: 'src/assets', to: 'assets' },
             ],
         }),
     ],

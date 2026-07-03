@@ -1,54 +1,64 @@
-# Glacial Void - PixiJS Mini-Game
+# Crown Siege
 
-A mini-game built with PixiJS 8, TypeScript, and Webpack 5.
+A browser survival shooter built with PixiJS 8, TypeScript, and Webpack 5. Defend the castle, protect the princess, and survive endless goblin waves.
 
-## Gameplay Features
+## Gameplay
 
-**Goal:** Destroy all enemies before time runs out!
+You are **John**, sent from the future to change history. Goblins attack from all sides — shoot them before they reach the castle. The run ends when the castle falls.
 
-*   **Enemies:** Animated Orcs roam the battlefield. Click on them to destroy them.
-*   **Booster:** Look for the magical potion! Collecting it grants you **+10 seconds** of extra time. There is one booster per level.
-*   **Levels & Progression:**
-    *   Complete levels to unlock the next challenge.
-    *   **Star Rating:** Earn 1 to 3 stars based on your speed.
-        *   ⭐⭐⭐: Excellent speed!
-        *   ⭐⭐: Good job.
-        *   ⭐: Completed just in time.
-*   **Controls:**
-    *   **Mouse Click:** Attack enemies, collect boosters, interact with UI.
-    *   **UI:** Pause game, toggle sound, retry levels.
+- **Castle HP** — enemies that reach the castle deal damage; the castle heals +20 HP every 1000 score
+- **Survival** — waves grow faster and larger over time; enemy speed ramps up
+- **Weapons** — pistol by default; pickups grant shotgun, RPG, assault rifle, and minigun
+- **Overheat** — assault rifle and minigun build heat; stop firing to cool down
+- **Bonuses** — slow-time potions and weapon ammo drops spawn on the field
+- **Rating** — rank your run (S–D) by survival time; best runs are saved locally
+
+## Controls
+
+| Input | Action |
+| --- | --- |
+| Tap / click | Aim and shoot |
+| Hold | Continuous fire (auto weapons) |
+| HUD buttons | Pause, sound, settings |
+
+Works on desktop and mobile browsers.
 
 ## Requirements
 
-- Node.js (v16+)
+- Node.js 16+
 - npm
 
 ## Getting Started
 
-1.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
+```bash
+npm install
+npm start
+```
 
-2.  **Run in development mode:**
-    This will start a local server with hot reloading.
-    ```bash
-    npm start
-    ```
-    After running this, open [http://localhost:8080](http://localhost:8080) in your browser.
+Open [http://localhost:8080](http://localhost:8080).
 
-3.  **Build for production:**
-    This generates a optimized bundle in the `dist` folder.
-    ```bash
-    npm run build
-    ```
+Production build:
+
+```bash
+npm run build
+```
+
+Output goes to `dist/`.
 
 ## Project Structure
 
-- `src/assets/`: Images, sounds, and level configurations.
-- `src/core/`: Core engine logic (GameApp, SceneManager, SoundManager).
-- `src/entities/`: Game objects (Enemy, GameBooster).
-- `src/game/`: Higher-level game logic and managers.
-- `src/scenes/`: Game states (Menu, Game).
-- `src/ui/`: Heads-up display and popups.
-- `src/index.ts`: Entry point.
+```
+src/
+├── assets/config/   # textures.json, audio.json
+├── assets/images/   # sprites and sprite sheets (WebP)
+├── assets/sounds/   # weapon and SFX audio
+├── core/            # GameApp, scenes, assets/audio loaders, viewport
+├── effects/         # blood, explosions, bullet marks, toasts
+├── entities/        # Castle, enemies, weapon pickups
+├── game/            # GameController, survival balance, managers
+├── scenes/          # Menu and game scenes
+├── styles/          # Shared typography (PIXI + DOM)
+└── ui/              # HUD, popups, overheat bar
+```
+
+Asset manifests in `textures.json` and `audio.json` drive loading; no hard-coded asset paths in game logic.

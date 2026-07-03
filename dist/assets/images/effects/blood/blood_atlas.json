@@ -1,0 +1,60 @@
+{
+    "frames": [
+        {
+            "name": "stain_01",
+            "x": 0,
+            "y": 0,
+            "width": 96,
+            "height": 96
+        },
+        {
+            "name": "stain_02",
+            "x": 96,
+            "y": 0,
+            "width": 96,
+            "height": 96
+        },
+        {
+            "name": "stain_03",
+            "x": 192,
+            "y": 0,
+            "width": 96,
+            "height": 96
+        },
+        {
+            "name": "stain_04",
+            "x": 288,
+            "y": 0,
+            "width": 96,
+            "height": 96
+        },
+        {
+            "name": "stain_05",
+            "x": 0,
+            "y": 96,
+            "width": 96,
+            "height": 96
+        },
+        {
+            "name": "stain_06",
+            "x": 96,
+            "y": 96,
+            "width": 96,
+            "height": 96
+        },
+        {
+            "name": "stain_07",
+            "x": 192,
+            "y": 96,
+            "width": 96,
+            "height": 96
+        },
+        {
+            "name": "stain_08",
+            "x": 288,
+            "y": 96,
+            "width": 96,
+            "height": 96
+        }
+    ]
+}
