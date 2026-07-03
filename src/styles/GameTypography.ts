@@ -70,7 +70,7 @@ export function menuTaglineStyle(fontSize = 8, lineHeight = 14): Partial<PIXI.Te
 }
 
 export function hudLabelStyle(fontSize: number): Partial<PIXI.TextStyle> {
-    return { fontFamily: FONT_FAMILY, fontSize, fill: TEXT_COLORS.gray };
+    return { fontFamily: FONT_FAMILY, fontSize, fill: TEXT_COLORS.white };
 }
 
 export function hudValueStyle(fontSize: number): Partial<PIXI.TextStyle> {
@@ -78,7 +78,7 @@ export function hudValueStyle(fontSize: number): Partial<PIXI.TextStyle> {
 }
 
 export function hudButtonStyle(fontSize: number): Partial<PIXI.TextStyle> {
-    return { fontFamily: FONT_FAMILY, fontSize, fill: TEXT_COLORS.black };
+    return { fontFamily: FONT_FAMILY, fontSize, fill: TEXT_COLORS.white };
 }
 
 export function castleHpStyle(fontSize = 7): Partial<PIXI.TextStyle> {

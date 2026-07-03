@@ -3,6 +3,7 @@ import { formatTime } from '../game/SurvivalConfig';
 import { ActiveWeapon } from '../game/GameController';
 import { isPhoneViewport } from '../core/Viewport';
 import { hudButtonStyle, hudLabelStyle, hudValueStyle } from '../styles/GameTypography';
+import { HudDomControls, HudDomLayout } from './HudDomControls';
 
 const BTN_LABELS = {
     pause: 'PAUSE',
@@ -19,7 +20,9 @@ interface HudLayout {
     btnHeight: number;
     btnFontSize: number;
     btnGap: number;
+    labelGap: number;
     showLabels: boolean;
+    compactLabels: boolean;
     pauseLabel: string;
     soundLabel: string;
     settingsLabel: string;
@@ -35,6 +38,7 @@ interface HudButton {
 
 const MAX_BTN_WIDTH = 80;
 const MIN_BTN_WIDTH = 34;
+const MIN_BTN_HEIGHT_PHONE = 36;
 const LABEL_VALUE_GAP = 6;
 
 function computeLayout(screenWidth: number): HudLayout {
@@ -43,35 +47,52 @@ function computeLayout(screenWidth: number): HudLayout {
     const btnGap = screenWidth < 380 ? 4 : 6;
 
     let btnWidth = screenWidth >= 900 ? 78 : screenWidth >= 640 ? 64 : screenWidth >= 480 ? 54 : 44;
-    let btnHeight = screenWidth < 380 ? 24 : screenWidth < 640 ? 28 : 32;
+    let btnHeight = isPhone
+        ? Math.max(MIN_BTN_HEIGHT_PHONE, screenWidth < 380 ? 32 : 34)
+        : screenWidth < 640 ? 28 : 32;
     let btnFontSize = isPhone
         ? (screenWidth < 360 ? 5 : screenWidth < 400 ? 5.5 : 6)
         : (screenWidth < 640 ? 8 : 9);
 
     const statsReserve = isPhone
-        ? (screenWidth < 380 ? 128 : 148)
+        ? (screenWidth < 380 ? 138 : 158)
         : (screenWidth < 640 ? 280 : 380);
     const maxFitWidth = Math.floor((screenWidth - padding * 2 - statsReserve - btnGap * 2) / 3);
     btnWidth = Math.max(MIN_BTN_WIDTH, Math.min(MAX_BTN_WIDTH, btnWidth, maxFitWidth));
 
-    const showLabels = screenWidth >= 560;
+    const compactLabels = isPhone && screenWidth < 560;
+    const showLabels = screenWidth >= 560 || compactLabels;
+    const labelSize = screenWidth >= 900
+        ? 8
+        : screenWidth >= 560
+            ? 7
+            : compactLabels
+                ? (screenWidth < 380 ? 6 : 7)
+                : 0;
+    const labelGap = compactLabels ? 4 : LABEL_VALUE_GAP;
     const hudHeight = showLabels
-        ? screenWidth >= 900 ? 88 : 76
-        : screenWidth < 380 ? 50 : 58;
+        ? compactLabels
+            ? Math.max(64, btnHeight + 28)
+            : screenWidth >= 900 ? 88 : 76
+        : isPhone
+            ? Math.max(52, btnHeight + 16)
+            : screenWidth < 380 ? 50 : 58;
 
     return {
         hudHeight,
         padding,
-        labelSize: showLabels ? (screenWidth >= 900 ? 8 : 7) : 0,
+        labelSize,
         valueSize: screenWidth < 380 ? 9 : screenWidth < 640 ? 10 : screenWidth >= 900 ? 14 : 12,
         btnWidth,
         btnHeight,
         btnFontSize,
         btnGap,
+        labelGap,
         showLabels,
+        compactLabels,
         pauseLabel: BTN_LABELS.pause,
         soundLabel: BTN_LABELS.sound,
-        settingsLabel: BTN_LABELS.settings,
+        settingsLabel: isPhone && screenWidth < 520 ? 'SET' : BTN_LABELS.settings,
     };
 }
 
@@ -88,6 +109,8 @@ export class HUD extends PIXI.Container {
     private pauseBtn: HudButton;
     private soundBtn: HudButton;
     private settingsBtn: HudButton;
+    private domControls: HudDomControls | null = null;
+    private useDomControls = false;
     private screenWidth = window.innerWidth;
 
     private layout: HudLayout = computeLayout(window.innerWidth);
@@ -98,6 +121,7 @@ export class HUD extends PIXI.Container {
 
     constructor() {
         super();
+        this.sortableChildren = true;
         this.createUI();
         this.setupInputShield();
     }
@@ -127,12 +151,14 @@ export class HUD extends PIXI.Container {
         this.weaponLabel.visible = false;
         this.weaponValue.visible = false;
 
-        this.addChild(
+        const statTexts = [
             this.timeLabel, this.timeValue,
             this.killsLabel, this.killsValue,
             this.scoreLabel, this.scoreValue,
             this.weaponLabel, this.weaponValue,
-        );
+        ];
+        statTexts.forEach(t => { t.eventMode = 'none'; });
+        this.addChild(...statTexts);
 
         this.pauseBtn = this.createButton('PAUSE', 0x0099cc);
         this.soundBtn = this.createButton('SOUND', 0x777777);
@@ -165,6 +191,7 @@ export class HUD extends PIXI.Container {
         container.interactiveChildren = false;
         container.eventMode = 'static';
         container.cursor = 'pointer';
+        container.zIndex = 20;
         container.on('pointerover', () => { inner.tint = 0xdddddd; });
         container.on('pointerout', () => { inner.tint = 0xffffff; });
 
@@ -172,11 +199,43 @@ export class HUD extends PIXI.Container {
     }
 
     private bindButtonClick(btn: HudButton, cb: () => void): void {
-        const handler = (e: PIXI.FederatedPointerEvent): void => {
+        let lastFire = 0;
+        let activePress: { id: number; x: number; y: number } | null = null;
+        const tapSlop = isPhoneViewport() ? 40 : 24;
+
+        const fire = (e: PIXI.FederatedPointerEvent): void => {
             e.stopPropagation();
+            const now = performance.now();
+            if (now - lastFire < 300) return;
+            lastFire = now;
             cb();
         };
-        btn.container.on('pointertap', handler);
+
+        const clearPress = (pointerId: number): void => {
+            if (activePress?.id === pointerId) activePress = null;
+        };
+
+        const release = (e: PIXI.FederatedPointerEvent): void => {
+            e.stopPropagation();
+            if (!activePress || e.pointerId !== activePress.id) return;
+
+            const dx = e.global.x - activePress.x;
+            const dy = e.global.y - activePress.y;
+            activePress = null;
+
+            if (dx * dx + dy * dy <= tapSlop * tapSlop) {
+                fire(e);
+            }
+        };
+
+        btn.container.on('pointerdown', (e) => {
+            e.stopPropagation();
+            activePress = { id: e.pointerId, x: e.global.x, y: e.global.y };
+        });
+        btn.container.on('pointerup', release);
+        btn.container.on('pointerupoutside', release);
+        btn.container.on('pointercancel', (e) => clearPress(e.pointerId));
+        btn.container.on('pointertap', fire);
     }
 
     private fitButtonFont(label: PIXI.Text, text: string, btnWidth: number, btnHeight: number, startSize: number): void {
@@ -193,7 +252,7 @@ export class HUD extends PIXI.Container {
         label.style.fontSize = Math.max(minSize, fontSize);
     }
 
-    private redrawButton(btn: HudButton, text: string, fontScale = 1): void {
+    private redrawButton(btn: HudButton, text: string, fontScale = 1, alignRight = false): void {
         const { btnWidth, btnHeight, btnFontSize } = this.layout;
         const { border, inner, label, color } = btn;
 
@@ -206,7 +265,16 @@ export class HUD extends PIXI.Container {
 
         this.fitButtonFont(label, text, btnWidth, btnHeight, btnFontSize * fontScale);
         label.position.set(btnWidth / 2, btnHeight / 2);
-        btn.container.hitArea = new PIXI.Rectangle(0, 0, btnWidth, btnHeight);
+
+        const touchPad = isPhoneViewport() ? 12 : 4;
+        const padLeft = alignRight ? touchPad * 2 : touchPad;
+        const padRight = alignRight ? 2 : touchPad;
+        btn.container.hitArea = new PIXI.Rectangle(
+            -padLeft,
+            -touchPad,
+            btnWidth + padLeft + padRight,
+            btnHeight + touchPad * 2,
+        );
     }
 
     private applyTextStyles(): void {
@@ -218,30 +286,59 @@ export class HUD extends PIXI.Container {
         label.anchor.set(0, 0);
         value.anchor.set(0, 0);
         label.position.set(x, top);
-        value.position.set(x, top + (this.layout.showLabels ? label.height + LABEL_VALUE_GAP : 0));
+        value.position.set(x, top + (this.layout.showLabels ? label.height + this.layout.labelGap : 0));
         return Math.max(label.width, value.width);
     }
 
-    private layoutButtons(): void {
+    private getButtonLayout(): HudDomLayout {
         const { padding, btnWidth, btnHeight, btnGap, hudHeight } = this.layout;
         const btnY = Math.round((hudHeight - btnHeight) / 2);
-        const settingsX = this.screenWidth - padding - btnWidth;
+        const edgeInset = isPhoneViewport() ? 4 : 0;
+        const settingsX = this.screenWidth - padding - btnWidth - edgeInset;
         const soundX = settingsX - btnGap - btnWidth;
         const pauseX = soundX - btnGap - btnWidth;
 
-        this.redrawButton(this.pauseBtn, this.layout.pauseLabel);
-        this.redrawButton(this.soundBtn, this.layout.soundLabel);
-        this.redrawButton(this.settingsBtn, this.layout.settingsLabel, 0.72);
-        this.pauseBtn.container.position.set(pauseX, btnY);
-        this.soundBtn.container.position.set(soundX, btnY);
-        this.settingsBtn.container.position.set(settingsX, btnY);
+        return {
+            pause: { x: pauseX, y: btnY, width: btnWidth, height: btnHeight, label: this.layout.pauseLabel },
+            sound: { x: soundX, y: btnY, width: btnWidth, height: btnHeight, label: this.layout.soundLabel },
+            settings: {
+                x: settingsX,
+                y: btnY,
+                width: btnWidth,
+                height: btnHeight,
+                label: this.layout.settingsLabel,
+            },
+        };
+    }
+
+    private layoutButtons(): void {
+        const buttonLayout = this.getButtonLayout();
+        const showPixiButtons = !this.useDomControls;
+
+        this.pauseBtn.container.visible = showPixiButtons;
+        this.soundBtn.container.visible = showPixiButtons;
+        this.settingsBtn.container.visible = showPixiButtons;
+
+        if (showPixiButtons) {
+            this.redrawButton(this.pauseBtn, buttonLayout.pause.label);
+            this.redrawButton(this.soundBtn, buttonLayout.sound.label);
+            const settingsScale = this.layout.settingsLabel === 'SET' ? 1 : 0.72;
+            this.redrawButton(this.settingsBtn, buttonLayout.settings.label, settingsScale, true);
+            this.pauseBtn.container.position.set(buttonLayout.pause.x, buttonLayout.pause.y);
+            this.soundBtn.container.position.set(buttonLayout.sound.x, buttonLayout.sound.y);
+            this.settingsBtn.container.position.set(buttonLayout.settings.x, buttonLayout.settings.y);
+            this.sortChildren();
+        }
+
+        this.domControls?.layout(buttonLayout);
     }
 
     private layoutStats(): void {
-        const { padding, hudHeight, showLabels, labelSize } = this.layout;
+        const { padding, hudHeight, showLabels, labelGap } = this.layout;
         const statsRight = this.pauseBtn.container.x - 8;
         const valueH = this.timeValue.height;
-        const rowTop = Math.round((hudHeight - (showLabels ? labelSize + LABEL_VALUE_GAP + valueH : valueH)) / 2);
+        const labelBlockH = showLabels ? this.timeLabel.height + labelGap : 0;
+        const rowTop = Math.round((hudHeight - (labelBlockH + valueH)) / 2);
 
         const statColumns = this.weaponValue.visible ? 4 : 3;
         const colGap = Math.max(10, Math.floor((statsRight - padding) / statColumns));
@@ -276,10 +373,13 @@ export class HUD extends PIXI.Container {
     public resize(width: number, _height: number): void {
         this.screenWidth = width;
         this.layout = computeLayout(width);
+        if (this.useDomControls && !isPhoneViewport()) {
+            this.unmountDomControls();
+        }
         this.applyTextStyles();
         this.topBar.clear();
         this.topBar.rect(0, 0, width, this.layout.hudHeight).fill(0x000000);
-        this.topBar.eventMode = 'static';
+        this.topBar.eventMode = 'none';
         this.topBar.hitArea = new PIXI.Rectangle(0, 0, width, this.layout.hudHeight);
         this.eventMode = 'static';
         this.hitArea = new PIXI.Rectangle(0, 0, width, this.layout.hudHeight);
@@ -353,19 +453,38 @@ export class HUD extends PIXI.Container {
         this.layoutStats();
     }
 
+    public mountDomControls(handlers: {
+        onPause: () => void;
+        onSound: () => void;
+        onSettings: () => void;
+    }): void {
+        if (!isPhoneViewport()) return;
+        this.unmountDomControls();
+        this.useDomControls = true;
+        this.domControls = new HudDomControls(handlers);
+        this.layoutButtons();
+    }
+
+    public unmountDomControls(): void {
+        this.domControls?.destroy();
+        this.domControls = null;
+        this.useDomControls = false;
+    }
+
     public onPauseClick(cb: () => void): void {
-        this.bindButtonClick(this.pauseBtn, cb);
+        if (!this.useDomControls) this.bindButtonClick(this.pauseBtn, cb);
     }
 
     public onSoundClick(cb: () => void): void {
-        this.bindButtonClick(this.soundBtn, cb);
+        if (!this.useDomControls) this.bindButtonClick(this.soundBtn, cb);
     }
 
     public onSettingsClick(cb: () => void): void {
-        this.bindButtonClick(this.settingsBtn, cb);
+        if (!this.useDomControls) this.bindButtonClick(this.settingsBtn, cb);
     }
 
     public setSoundText(isOn: boolean): void {
         this.soundBtn.label.alpha = isOn ? 1 : 0.5;
+        this.domControls?.setSoundActive(isOn);
     }
 }

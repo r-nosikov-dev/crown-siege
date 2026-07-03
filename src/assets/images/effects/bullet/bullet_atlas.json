@@ -1,0 +1,60 @@
+{
+    "frames": [
+        {
+            "name": "mark_01",
+            "x": 0,
+            "y": 0,
+            "width": 64,
+            "height": 64
+        },
+        {
+            "name": "mark_02",
+            "x": 64,
+            "y": 0,
+            "width": 64,
+            "height": 64
+        },
+        {
+            "name": "mark_03",
+            "x": 128,
+            "y": 0,
+            "width": 64,
+            "height": 64
+        },
+        {
+            "name": "mark_04",
+            "x": 192,
+            "y": 0,
+            "width": 64,
+            "height": 64
+        },
+        {
+            "name": "mark_05",
+            "x": 0,
+            "y": 64,
+            "width": 64,
+            "height": 64
+        },
+        {
+            "name": "mark_06",
+            "x": 64,
+            "y": 64,
+            "width": 64,
+            "height": 64
+        },
+        {
+            "name": "mark_07",
+            "x": 128,
+            "y": 64,
+            "width": 64,
+            "height": 64
+        },
+        {
+            "name": "mark_08",
+            "x": 192,
+            "y": 64,
+            "width": 64,
+            "height": 64
+        }
+    ]
+}

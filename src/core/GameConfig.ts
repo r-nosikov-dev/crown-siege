@@ -9,3 +9,8 @@ export const GAME_INTRO_LINES = [
     'Change history. Save humanity.',
 ] as const;
 export const GAME_INTRO_BEGIN_LABEL = 'BEGIN';
+
+export const TOAST_AK_PICKUP = 'AK-47: hold fire, watch heat';
+export const TOAST_AK_PICKUP_MOBILE = 'AK-47 — hold finger to auto-fire';
+export const TOAST_MINIGUN_PICKUP = 'Minigun: rapid fire, watch heat';
+export const TOAST_MINIGUN_PICKUP_MOBILE = 'Minigun — hold finger to auto-fire';

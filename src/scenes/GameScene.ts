@@ -33,7 +33,13 @@ import {
     getAutoWeaponHitRadius,
     AutoWeaponType,
 } from '../game/SurvivalConfig';
-import { getPlayfieldEntityScale } from '../core/Viewport';
+import { getPlayfieldEntityScale, isPhoneViewport } from '../core/Viewport';
+import {
+    TOAST_AK_PICKUP,
+    TOAST_AK_PICKUP_MOBILE,
+    TOAST_MINIGUN_PICKUP,
+    TOAST_MINIGUN_PICKUP_MOBILE,
+} from '../core/GameConfig';
 
 export class GameScene extends Scene {
     private gameWorld: PIXI.Container;
@@ -65,7 +71,11 @@ export class GameScene extends Scene {
         this.enemyManager = new EnemyManager();
         this.boosterManager = new BoosterManager();
         this.hud = new HUD();
+        this.hud.zIndex = 100;
+        this.sortableChildren = true;
         this.gameWorld = new PIXI.Container();
+        this.gameWorld.zIndex = 0;
+        this.gameWorld.eventMode = 'passive';
         this.playLayer = new PIXI.Container();
         this.effectsLayer = new PIXI.Container();
 
@@ -75,6 +85,7 @@ export class GameScene extends Scene {
         this.gameWorld.addChild(this.playLayer);
         this.addChild(this.gameWorld);
         this.addChild(this.hud);
+        this.sortChildren();
 
         this.playLayer.sortableChildren = true;
         this.effectsLayer.zIndex = 0;
@@ -100,11 +111,17 @@ export class GameScene extends Scene {
                 showBoosterToast(`Shotgun: ${SURVIVAL.SHOTGUN_AMMO} shells, pump-action`);
             } else if (type === 'assault') {
                 this.gameController.applyAssault();
-                showBoosterToast('AK-47: hold fire, watch heat');
+                showBoosterToast(
+                    isPhoneViewport() ? TOAST_AK_PICKUP_MOBILE : TOAST_AK_PICKUP,
+                    isPhoneViewport() ? 3500 : 2200,
+                );
                 showOverheatBar(true);
             } else if (type === 'minigun') {
                 this.gameController.applyMinigun();
-                showBoosterToast('Minigun: rapid fire, watch heat');
+                showBoosterToast(
+                    isPhoneViewport() ? TOAST_MINIGUN_PICKUP_MOBILE : TOAST_MINIGUN_PICKUP,
+                    isPhoneViewport() ? 3500 : 2200,
+                );
                 showOverheatBar(true);
             } else {
                 this.gameController.applyRpg();
@@ -153,10 +170,24 @@ export class GameScene extends Scene {
     }
 
     public onActivate(): void {
+        this.hud.mountDomControls({
+            onPause: () => {
+                if (this.gameController && !this.gameController.isGameOver) {
+                    this.gameController.isPaused = !this.gameController.isPaused;
+                    if (this.gameController.isPaused) this.stopHoldingFire();
+                }
+            },
+            onSound: () => {
+                const isMuted = SoundManager.getInstance().toggleMute();
+                this.hud.setSoundText(!isMuted);
+            },
+            onSettings: () => this.openSettings(),
+        });
         this.startGame();
     }
 
     public onDeactivate(): void {
+        this.hud.unmountDomControls();
         this.stopHoldingFire();
         this.enemyManager.clearEnemies();
         this.boosterManager.clear();

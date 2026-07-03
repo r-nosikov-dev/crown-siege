@@ -10,10 +10,12 @@
         "weapon_ak": "assets/images/weapons/ak.webp",
         "weapon_minigun": "assets/images/weapons/minigun.webp",
         "weapon_rpg": "assets/images/weapons/rpg.webp",
-        "blood_atlas": "assets/images/effects/blood/blood_atlas.webp"
+        "blood_atlas": "assets/images/effects/blood/blood_atlas.webp",
+        "bullet_atlas": "assets/images/effects/bullet/bullet_atlas.webp"
     },
     "spriteSheets": {
-        "blood_atlas": "assets/images/effects/blood/blood_atlas.json"
+        "blood_atlas": "assets/images/effects/blood/blood_atlas.json",
+        "bullet_atlas": "assets/images/effects/bullet/bullet_atlas.json"
     },
     "ui": {
         "aim": "assets/images/ui/aim.webp"

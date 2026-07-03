@@ -2,7 +2,7 @@ import gsap from '../lib/gsap';
 
 let activeToast: HTMLDivElement | null = null;
 
-export function showBoosterToast(message: string): void {
+export function showBoosterToast(message: string, displayMs = 2200): void {
     if (activeToast) {
         activeToast.remove();
         activeToast = null;
@@ -29,7 +29,7 @@ export function showBoosterToast(message: string): void {
                 opacity: 0,
                 y: -14,
                 duration: 0.35,
-                delay: 2.2,
+                delay: displayMs / 1000,
                 ease: 'power2.in',
                 onUpdate: apply,
                 onComplete: () => {

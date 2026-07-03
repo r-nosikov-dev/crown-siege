@@ -6,7 +6,8 @@ import { ArsenalInfoPopup } from '../ui/ArsenalInfoPopup';
 import { RatingPopup } from '../ui/RatingPopup';
 import { IntroStoryPopup } from '../ui/IntroStoryPopup';
 import { GAME_SUBTITLE, GAME_TAGLINE, GAME_TITLE } from '../core/GameConfig';
-import { getPlayfieldEntityScale, getViewportSize } from '../core/Viewport';
+import { invalidatePixiText } from '../core/FontLoader';
+import { getPlayfieldEntityScale, getViewportSize, isPhoneViewport } from '../core/Viewport';
 import {
     menuSubtitleStyle,
     menuTaglineStyle,
@@ -87,6 +88,8 @@ export class MenuScene extends Scene {
         const assets = AssetsLoader.getInstance();
         this.castleSprite.texture = assets.getTexture(ASSETS.CASTLE);
         this.createMenuButtons();
+
+        invalidatePixiText(this.title, this.titleGlow, this.subtitle, this.tagline);
 
         const { width, height } = getViewportSize();
         this.resize(width, height);
@@ -226,6 +229,51 @@ export class MenuScene extends Scene {
         this.titleGlow.alpha = 0.35 + Math.sin(this.bobPhase * 1.4) * 0.15;
     }
 
+    private layoutTitle(width: number): void {
+        const titlePad = width < 400 ? 24 : 32;
+        const maxTitleWidth = width - titlePad;
+        const useTwoLines = width < 480;
+        const titleText = useTwoLines ? 'CROWN\nSIEGE' : GAME_TITLE;
+
+        this.title.text = titleText;
+        this.titleGlow.text = titleText;
+        this.title.scale.set(1);
+        this.titleGlow.scale.set(1);
+
+        let titleSize = isPhoneViewport()
+            ? Math.max(10, Math.min(20, width * 0.032))
+            : Math.max(14, Math.min(34, width * 0.042));
+
+        const applyTitleSize = (size: number): void => {
+            this.title.style.fontSize = size;
+            this.titleGlow.style.fontSize = size + 1;
+            this.title.style.align = 'center';
+            this.titleGlow.style.align = 'center';
+            this.title.style.wordWrap = !useTwoLines;
+            this.title.style.wordWrapWidth = useTwoLines ? 0 : maxTitleWidth;
+            this.title.style.breakWords = !useTwoLines;
+            this.titleGlow.style.wordWrap = !useTwoLines;
+            this.titleGlow.style.wordWrapWidth = useTwoLines ? 0 : maxTitleWidth;
+            this.titleGlow.style.breakWords = !useTwoLines;
+            if (useTwoLines) {
+                this.title.style.lineHeight = size + 6;
+                this.titleGlow.style.lineHeight = size + 7;
+            }
+        };
+
+        applyTitleSize(titleSize);
+        while (titleSize > 8 && this.title.width > maxTitleWidth) {
+            titleSize -= 0.5;
+            applyTitleSize(titleSize);
+        }
+
+        if (this.title.width > maxTitleWidth) {
+            const scale = maxTitleWidth / this.title.width;
+            this.title.scale.set(scale);
+            this.titleGlow.scale.set(scale);
+        }
+    }
+
     public resize(width: number, height: number): void {
         this.drawSky(width, height);
         this.drawOverlay(width, height);
@@ -249,9 +297,7 @@ export class MenuScene extends Scene {
         this.castleShadow.ellipse(0, shadowY, shadowW * 0.82, shadowH * 0.72)
             .fill({ color: 0x000000, alpha: 0.17 });
 
-        const titleSize = Math.max(13, Math.min(34, width * 0.042));
-        this.title.style.fontSize = titleSize;
-        this.titleGlow.style.fontSize = titleSize + 2;
+        this.layoutTitle(width);
 
         this.subtitle.style.fontSize = Math.max(7, Math.min(10, width * 0.02));
         this.tagline.style.fontSize = Math.max(6, Math.min(8, width * 0.015));
@@ -266,7 +312,8 @@ export class MenuScene extends Scene {
         this.title.position.set(width / 2, titleY);
         this.titleGlow.position.set(width / 2 + 2, titleY + 2);
 
-        const subtitleY = titleY + this.title.height / 2 + Math.max(10, titleSize * 0.28) + this.subtitle.height / 2;
+        const titleFontSize = Number(this.title.style.fontSize) || 13;
+        const subtitleY = titleY + this.title.height / 2 + Math.max(10, titleFontSize * 0.28) + this.subtitle.height / 2;
         this.subtitle.position.set(width / 2, subtitleY);
 
         const taglineY = subtitleY + this.subtitle.height / 2 + Math.max(10, width < 400 ? 10 : 14) + this.tagline.height / 2;

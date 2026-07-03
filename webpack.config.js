@@ -36,10 +36,12 @@ module.exports = {
         new HtmlWebpackPlugin({
             title: 'Crown Siege',
             template: './src/index.html',
+            favicon: './src/favicon.ico',
         }),
         new CopyPlugin({
             patterns: [
                 { from: 'src/assets', to: 'assets' },
+                { from: 'src/favicon.png', to: 'favicon.png' },
             ],
         }),
     ],

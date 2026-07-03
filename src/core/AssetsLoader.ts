@@ -14,6 +14,7 @@ export const ASSETS = {
     WEAPON_MINIGUN: 'weapon_minigun',
     WEAPON_RPG: 'weapon_rpg',
     BLOOD_ATLAS: 'blood_atlas',
+    BULLET_ATLAS: 'bullet_atlas',
 } as const;
 
 export type AssetAlias = (typeof ASSETS)[keyof typeof ASSETS];
@@ -41,6 +42,7 @@ export class AssetsLoader {
     private loaded = false;
     private uiPaths: Record<string, string> = {};
     private bloodStainTextures: PIXI.Texture[] = [];
+    private bulletMarkTextures: PIXI.Texture[] = [];
 
     private constructor() {}
 
@@ -94,6 +96,8 @@ export class AssetsLoader {
 
             if (alias === ASSETS.BLOOD_ATLAS) {
                 this.bloodStainTextures = frames;
+            } else if (alias === ASSETS.BULLET_ATLAS) {
+                this.bulletMarkTextures = frames;
             }
         }
     }
@@ -111,6 +115,13 @@ export class AssetsLoader {
             throw new Error('No blood stain frames loaded from sprite sheet');
         }
         return this.bloodStainTextures[Math.floor(Math.random() * this.bloodStainTextures.length)];
+    }
+
+    public getRandomBulletMarkTexture(): PIXI.Texture {
+        if (this.bulletMarkTextures.length === 0) {
+            throw new Error('No bullet mark frames loaded from sprite sheet');
+        }
+        return this.bulletMarkTextures[Math.floor(Math.random() * this.bulletMarkTextures.length)];
     }
 
     public getAimCursor(hotspotX = 16, hotspotY = 16): string {

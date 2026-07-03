@@ -6,6 +6,7 @@ import { SoundManager } from './SoundManager';
 import { MenuScene } from '../scenes/MenuScene';
 import { GameScene } from '../scenes/GameScene';
 import { getDevicePixelRatio, getViewportSize, setupViewportListeners } from './Viewport';
+import { loadGameFonts } from './FontLoader';
 
 export class GameApp {
     private static instance: GameApp;
@@ -25,6 +26,9 @@ export class GameApp {
     }
 
     public async init(): Promise<void> {
+        document.body.classList.add('game-loading');
+        await loadGameFonts();
+
         const { width, height } = getViewportSize();
 
         await this.app.init({
@@ -41,6 +45,7 @@ export class GameApp {
         canvas.style.width = '100%';
         canvas.style.height = '100%';
         canvas.style.touchAction = 'none';
+        canvas.style.opacity = '0';
         document.body.appendChild(canvas);
 
         await AssetsLoader.getInstance().loadGameAssets();
@@ -56,6 +61,9 @@ export class GameApp {
         this.sceneManager.addScene('game', new GameScene());
 
         this.sceneManager.switchTo('menu');
+
+        canvas.style.opacity = '1';
+        document.body.classList.remove('game-loading');
     }
 
     private handleResize(): void {
