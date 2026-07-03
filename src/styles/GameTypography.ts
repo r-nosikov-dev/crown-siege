@@ -867,11 +867,36 @@ body.game-loading {
         .intro-popup__line {
             margin: 0 0 14px;
             line-height: 1.75;
+            min-height: 1.75em;
         }
 
         .intro-popup__line:last-child {
             margin-bottom: 0;
+        }
+
+        .intro-popup__line--done:last-child {
             color: #ffe066;
+        }
+
+        .intro-popup__line--active::after {
+            content: '▌';
+            display: inline-block;
+            margin-left: 1px;
+            color: #ffe066;
+            animation: intro-cursor-blink 0.75s step-end infinite;
+        }
+
+        .intro-popup__header--typing::after {
+            content: '▌';
+            display: inline-block;
+            margin-left: 2px;
+            color: #fff3bf;
+            animation: intro-cursor-blink 0.75s step-end infinite;
+        }
+
+        @keyframes intro-cursor-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         .intro-popup__btn {
@@ -1190,6 +1215,10 @@ export const TYPOGRAPHY_CSS = `
     font-family: ${FONT_FAMILY_CSS};
     font-size: clamp(7px, 2.1vw, 9px);
     color: #d0ebff;
+}
+
+.intro-popup__line--done:last-child {
+    color: #ffe066;
 }
 
 .intro-popup__btn {

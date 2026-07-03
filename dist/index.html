@@ -559,6 +559,12 @@
             text-overflow: ellipsis;
         }
 
+        @media (min-width: 600px) and (min-height: 600px) {
+            .booster-toast {
+                top: clamp(96px, 12vh, 108px);
+            }
+        }
+
         .result-popup {
             position: fixed;
             inset: 0;
@@ -680,16 +686,60 @@
         .intro-popup__line {
             margin: 0 0 14px;
             line-height: 1.75;
+            min-height: 1.75em;
         }
 
         .intro-popup__line:last-child {
             margin-bottom: 0;
+        }
+
+        .intro-popup__line--done:last-child {
             color: #ffe066;
+        }
+
+        .intro-popup__line--active::after {
+            content: '▌';
+            display: inline-block;
+            margin-left: 1px;
+            color: #ffe066;
+            animation: intro-cursor-blink 0.75s step-end infinite;
+        }
+
+        .intro-popup__header--typing::after {
+            content: '▌';
+            display: inline-block;
+            margin-left: 2px;
+            color: #fff3bf;
+            animation: intro-cursor-blink 0.75s step-end infinite;
+        }
+
+        @keyframes intro-cursor-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
         }
 
         .intro-popup__btn {
             position: relative !important;
             min-width: 140px;
+        }
+
+        .intro-popup__btn--waiting {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .intro-popup__skip-hint {
+            margin-top: 14px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(5px, 1.5vw, 7px);
+            color: rgba(208, 235, 255, 0.45);
+            letter-spacing: 0.5px;
+            transition: opacity 0.3s ease;
+        }
+
+        .intro-popup__skip-hint--hidden {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .settings-popup {
@@ -1001,6 +1051,14 @@
     font-family: 'Press Start 2P', cursive;
     font-size: clamp(7px, 2.1vw, 9px);
     color: #d0ebff;
+}
+
+.intro-popup__line--done:last-child {
+    color: #ffe066;
+}
+
+.intro-popup__skip-hint {
+    font-family: 'Press Start 2P', cursive;
 }
 
 .intro-popup__btn {
