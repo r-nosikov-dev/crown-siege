@@ -53,8 +53,11 @@ export class AssetsLoader {
         return AssetsLoader.instance;
     }
 
-    public async loadGameAssets(): Promise<void> {
-        if (this.loaded) return;
+    public async loadGameAssets(onProgress?: (progress: number) => void): Promise<void> {
+        if (this.loaded) {
+            onProgress?.(1);
+            return;
+        }
 
         const response = await fetch(MANIFEST_PATH);
         if (!response.ok) {
@@ -69,8 +72,9 @@ export class AssetsLoader {
             src,
         }));
 
-        await PIXI.Assets.load(bundle);
+        await PIXI.Assets.load(bundle, (progress) => onProgress?.(progress * 0.88));
         await this.loadSpriteSheets(manifest.spriteSheets);
+        onProgress?.(1);
         this.loaded = true;
     }
 

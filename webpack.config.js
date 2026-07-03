@@ -1,6 +1,7 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { loadInlineGameStyles } = require('./webpack.gameStyles');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -37,6 +38,7 @@ module.exports = {
             title: 'Crown Siege',
             template: './src/index.html',
             favicon: './src/favicon.ico',
+            inlineGameStyles: loadInlineGameStyles(),
         }),
         new CopyPlugin({
             patterns: [

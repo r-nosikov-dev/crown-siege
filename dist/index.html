@@ -1,5 +1,93 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Crown Siege</title><link rel="icon" type="image/png" sizes="64x64" href="favicon.png"><link rel="apple-touch-icon" sizes="64x64" href="favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"><style>body.game-loading {
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Crown Siege</title><link rel="icon" type="image/png" sizes="64x64" href="favicon.png"><link rel="apple-touch-icon" sizes="64x64" href="favicon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet"><style id="game-typography">body.game-loading {
             background-color: #3d9ee8;
+        }
+
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 5000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(14px, 4vw, 24px);
+            padding: 24px;
+            background: linear-gradient(180deg, #3d9ee8 0%, #2a7ec4 100%);
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .loading-screen--hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loading-screen__title {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(14px, 4.5vw, 28px);
+            color: #ffe066;
+            text-align: center;
+            text-shadow: 0 3px 0 #c92a2a, 0 0 24px rgba(255, 224, 102, 0.35);
+            line-height: 1.5;
+            max-width: 92vw;
+        }
+
+        .loading-screen__subtitle {
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(6px, 2vw, 10px);
+            color: #e8f4ff;
+            text-align: center;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .loading-screen__bar-wrap {
+            width: min(320px, 82vw);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .loading-screen__bar-track {
+            width: 100%;
+            height: clamp(10px, 2.8vw, 14px);
+            background: rgba(10, 25, 50, 0.55);
+            border: 2px solid rgba(0, 0, 0, 0.45);
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+        }
+
+        .loading-screen__bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #44aa44, #ffd43b, #ff922b);
+            border-radius: 2px;
+            transition: width 0.15s ease-out;
+            box-shadow: 0 0 10px rgba(255, 212, 59, 0.45);
+        }
+
+        .loading-screen__meta {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: clamp(6px, 1.8vw, 9px);
+            color: #d0ebff;
+        }
+
+        .loading-screen__status {
+            flex: 1;
+            text-align: left;
+            line-height: 1.5;
+        }
+
+        .loading-screen__percent {
+            flex-shrink: 0;
+            color: #fff3bf;
         }
 
         html {
@@ -723,4 +811,198 @@
         .settings-popup__volume-value {
             min-width: 38px;
             text-align: right;
-        }</style><link rel="icon" href="favicon.ico"><script defer="defer" src="bundle.js"></script></head><body><div id="ui-layer"></div></body></html>
+        }
+
+.snes-button {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(10px, 2.5vw, 16px);
+    color: var(--text-color);
+}
+
+.rating-popup__close {
+    color: #fff;
+    font-size: 22px;
+}
+
+.rating-popup__header {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(10px, 2.8vw, 13px);
+    color: #fff3bf;
+}
+
+.rating-popup__section-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(7px, 2vw, 9px);
+    color: #d0ebff;
+}
+
+.rating-popup__table {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(6px, 1.7vw, 8px);
+    color: #fff;
+}
+
+.rating-popup__table th {
+    color: #fff3bf;
+}
+
+.rating-popup__row--best td {
+    color: #ffe066;
+}
+
+.rating-popup__empty-row td {
+    color: #d0ebff;
+}
+
+.rating-popup__date {
+    color: #a5d8ff;
+    font-size: clamp(5px, 1.5vw, 7px);
+}
+
+.rating-popup__tier-row td:first-child {
+    font-size: clamp(9px, 2.5vw, 12px);
+}
+
+.arsenal-info-popup__close {
+    color: #fff;
+    font-size: 22px;
+}
+
+.arsenal-info-popup__header {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(9px, 2.6vw, 12px);
+    color: #fff3bf;
+}
+
+.arsenal-info-popup__name {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(6px, 1.8vw, 8px);
+    color: var(--accent, #fff);
+}
+
+.arsenal-info-popup__desc {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(5px, 1.5vw, 6px);
+    color: #e8f4ff;
+}
+
+.record-banner__text {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(11px, 3.5vw, 18px);
+    color: #1a1a2e;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.record-banner__sub {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(7px, 2vw, 10px);
+    color: #3d3d5c;
+}
+
+.overheat-bar__label {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(5px, 1.4vw, 7px);
+    color: #000;
+    letter-spacing: 1px;
+}
+
+.overheat-bar--danger .overheat-bar__label {
+    color: #000;
+}
+
+.booster-toast {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(6px, 1.7vw, 8px);
+    color: #b8e0ff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.result-popup__header {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(14px, 4vw, 22px);
+    color: #ff6b6b;
+    text-shadow: 0 2px 8px rgba(255, 0, 0, 0.3);
+}
+
+.result-popup__record {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(8px, 2.2vw, 11px);
+    color: #1a1a2e;
+}
+
+.result-popup__tier {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(48px, 14vw, 80px);
+    text-shadow: 0 4px 24px currentColor;
+}
+
+.result-popup__tier-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(9px, 2.5vw, 12px);
+}
+
+.result-popup__stat-label {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(6px, 1.8vw, 8px);
+    color: #888;
+}
+
+.result-popup__stat-value {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(10px, 3vw, 14px);
+    color: #fff;
+}
+
+.settings-popup__close {
+    color: #ccc;
+    font-size: 22px;
+}
+
+.settings-popup__close:hover {
+    color: #fff;
+}
+
+.settings-popup__header {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(12px, 3.5vw, 16px);
+    color: #b8c0ff;
+}
+
+.settings-popup__section-title {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(7px, 2vw, 9px);
+    color: #888;
+    letter-spacing: 1px;
+}
+
+.settings-popup__label {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(7px, 2vw, 8px);
+    color: #aaa;
+}
+
+.settings-popup__mute {
+    font-size: clamp(8px, 2.2vw, 10px) !important;
+}
+
+.settings-popup__volume-value {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(7px, 2vw, 8px);
+    color: #fff;
+}
+
+.intro-popup__header {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(10px, 2.8vw, 13px);
+    color: #fff3bf;
+}
+
+.intro-popup__line {
+    font-family: 'Press Start 2P', cursive;
+    font-size: clamp(7px, 2.1vw, 9px);
+    color: #d0ebff;
+}
+
+.intro-popup__btn {
+    font-family: 'Press Start 2P', cursive;
+}</style><link rel="icon" href="favicon.ico"><script defer="defer" src="bundle.js"></script></head><body class="game-loading"><div id="loading-screen" class="loading-screen" aria-live="polite" aria-busy="true"><div class="loading-screen__title">CROWN SIEGE</div><div class="loading-screen__subtitle">DEFEND THE CASTLE</div><div class="loading-screen__bar-wrap"><div class="loading-screen__bar-track"><div id="loading-bar-fill" class="loading-screen__bar-fill"></div></div><div class="loading-screen__meta"><span id="loading-status" class="loading-screen__status">Loading...</span> <span id="loading-percent" class="loading-screen__percent">0%</span></div></div></div><div id="ui-layer"></div></body></html>
